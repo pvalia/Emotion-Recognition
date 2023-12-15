@@ -5,245 +5,142 @@
 
 # In[ ]:
 
-
-import pandas as pd
-import numpy as np
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import os
+#for dirname, _, filenames in os.walk('/kaggle/input'):
+    #for filename in filenames:
+        #print(os.path.join(dirname, filename))
 import matplotlib.pyplot as plt
 import seaborn as sns
-import warnings
-import random
-from tqdm.notebook import tqdm
-warnings.filterwarnings('ignore')
-
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
-from keras.preprocessing.image import load_img, ImageDataGenerator
+import keras
+from keras.preprocessing import image
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Dropout, Flatten, MaxPooling2D
-
-
-# ## Load the Dataset
-
-# In[ ]:
-
-
-TRAIN_DIR = './archive/train/train/'
-TEST_DIR = './archive/test/test/'
+from keras.layers import Conv2D, MaxPool2D, Flatten,Dense,Dropout,BatchNormalization
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import cv2
+from tensorflow.keras.applications import VGG16, InceptionResNetV2
+from keras import regularizers
+from tensorflow.keras.optimizers import Adam,RMSprop,SGD,Adamax
 
 
 # In[ ]:
 
+train_dir = './archive/train/train/'
+test_dir = './archive/test/test/'
+img_size = 48
 
-def load_dataset(directory):
-    image_paths = []
-    labels = []
+
+# In[ ]:
+
+train_datagen = ImageDataGenerator(#rotation_range = 180,
+                                         width_shift_range = 0.1,
+                                         height_shift_range = 0.1,
+                                         horizontal_flip = True,
+                                         rescale = 1./255,
+                                         #zoom_range = 0.2,
+                                         validation_split = 0.2
+                                        )
+validation_datagen = ImageDataGenerator(rescale = 1./255,
+                                         validation_split = 0.2)
+
+# In[ ]:
+
+train_generator = train_datagen.flow_from_directory(directory = train_dir,
+                                                    target_size = (img_size,img_size),
+                                                    batch_size = 64,
+                                                    color_mode = "grayscale",
+                                                    class_mode = "categorical",
+                                                    subset = "training"
+                                                   )
+validation_generator = validation_datagen.flow_from_directory( directory = test_dir,
+                                                              target_size = (img_size,img_size),
+                                                              batch_size = 64,
+                                                              color_mode = "grayscale",
+                                                              class_mode = "categorical",
+                                                              subset = "validation"
+                                                             )
+
+# In[ ]:
+model= tf.keras.models.Sequential()
+model.add(Conv2D(32, kernel_size=(3, 3), padding='same', activation='relu', input_shape=(48, 48,1)))
+model.add(Conv2D(64,(3,3), padding='same', activation='relu' ))
+model.add(BatchNormalization())
+model.add(MaxPool2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Conv2D(128,(5,5), padding='same', activation='relu'))
+model.add(BatchNormalization())
+model.add(MaxPool2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
     
-    for label in os.listdir(directory):
-        for filename in os.listdir(directory+label):
-            image_path = os.path.join(directory, label, filename)
-            image_paths.append(image_path)
-            labels.append(label)
-            
-        print(label, "Completed")
-        
-    return image_paths, labels
+model.add(Conv2D(512,(3,3), padding='same', activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+model.add(BatchNormalization())
+model.add(MaxPool2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
 
+model.add(Conv2D(512,(3,3), padding='same', activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+model.add(BatchNormalization())
+model.add(MaxPool2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
 
-# In[ ]:
+model.add(Flatten()) 
+model.add(Dense(256,activation = 'relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.25))
+    
+model.add(Dense(512,activation = 'relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.25))
 
+model.add(Dense(7, activation='softmax'))
 
-## convert into dataframe
-train = pd.DataFrame()
-train['image'], train['label'] = load_dataset(TRAIN_DIR)
-# shuffle the dataset
-train = train.sample(frac=1).reset_index(drop=True)
-train.head()
-
-
-# In[ ]:
-
-
-test = pd.DataFrame()
-test['image'], test['label'] = load_dataset(TEST_DIR)
-test.head()
-
-
-# ## Exploratory Data Analysis
+model.compile(
+    optimizer = Adam(lr=0.0001), 
+    loss='categorical_crossentropy', 
+    metrics=['accuracy']
+  )
 
 # In[ ]:
 
-
-sns.countplot(train['label'])
-
-
-# In[ ]:
-
-
-from PIL import Image
-img = Image.open(train['image'][0])
-plt.imshow(img, cmap='gray');
-
-
-# In[ ]:
-
-
-# to display grid of images
-plt.figure(figsize=(20,20))
-files = train.iloc[0:25]
-
-for index, file, label in files.itertuples():
-    plt.subplot(5, 5, index+1)
-    img = load_img(file)
-    img = np.array(img)
-    plt.imshow(img)
-    plt.title(label)
-    plt.axis('off')
-
-
-# ## Feature Extraction
-
-# In[ ]:
-
-
-train_datagen = ImageDataGenerator(rescale=1./255,
-                                   zoom_range=0.3,
-                                   horizontal_flip=True)
-
-training_set = train_datagen.flow_from_directory(TRAIN_DIR,
-                                                batch_size=64,
-                                                target_size=(48,48),
-                                                shuffle=True,
-                                                color_mode='grayscale',
-                                                class_mode='categorical')
-
-test_datagen = ImageDataGenerator(rescale=1./255)
-test_set = test_datagen.flow_from_directory(TEST_DIR,
-                                                batch_size=64,
-                                                target_size=(48,48),
-                                                shuffle=True,
-                                                color_mode='grayscale',
-                                                class_mode='categorical')
-
-
-# In[ ]:
-
-
-# config
-training_set.class_indices
-input_shape = (48, 48, 1)
-output_class = 7
-
-
-# ## Model Creation
-
-# In[ ]:
-
-
-model = Sequential()
-# convolutional layers
-model.add(Conv2D(128, kernel_size=(3,3), activation='relu', input_shape=input_shape))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Dropout(0.4))
-
-model.add(Conv2D(256, kernel_size=(3,3), activation='relu'))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Dropout(0.4))
-
-model.add(Conv2D(512, kernel_size=(3,3), activation='relu'))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Dropout(0.4))
-
-model.add(Conv2D(512, kernel_size=(3,3), activation='relu'))
-model.add(MaxPooling2D(pool_size=(2,2)))
-model.add(Dropout(0.4))
-
-model.add(Flatten())
-# fully connected layers
-model.add(Dense(512, activation='relu'))
-model.add(Dropout(0.4))
-model.add(Dense(256, activation='relu'))
-model.add(Dropout(0.3))
-# output layer
-model.add(Dense(output_class, activation='softmax'))
-
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics='accuracy')
-
+epochs = 2
+batch_size = 64
 model.summary()
 
 # In[ ]:
 
-# train the model
-history = model.fit(x=training_set, batch_size=128, epochs=2, validation_data=test_set)
-
-
-# ## Plot the Results
+history = model.fit(x = train_generator,epochs = epochs,validation_data = validation_generator)
 
 # In[ ]:
+fig , ax = plt.subplots(1,2)
+train_acc = history.history['accuracy']
+train_loss = history.history['loss']
+fig.set_size_inches(12,4)
 
+ax[0].plot(history.history['accuracy'])
+ax[0].plot(history.history['val_accuracy'])
+ax[0].set_title('Training Accuracy vs Validation Accuracy')
+ax[0].set_ylabel('Accuracy')
+ax[0].set_xlabel('Epoch')
+ax[0].legend(['Train', 'Validation'], loc='upper left')
 
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-epochs = range(len(acc))
-
-plt.plot(epochs, acc, 'b', label='Training Accuracy')
-plt.plot(epochs, val_acc, 'r', label='Validation Accuracy')
-plt.title('Accuracy Graph')
-plt.legend()
-plt.figure()
-
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs = range(len(acc))
-
-plt.plot(epochs, loss, 'b', label='Training Loss')
-plt.plot(epochs, val_loss, 'r', label='Validation Loss')
-plt.title('Loss Graph')
-plt.legend()
+ax[1].plot(history.history['loss'])
+ax[1].plot(history.history['val_loss'])
+ax[1].set_title('Training Loss vs Validation Loss')
+ax[1].set_ylabel('Loss')
+ax[1].set_xlabel('Epoch')
+ax[1].legend(['Train', 'Validation'], loc='upper left')
 
 plt.show()
 
-
-# ## Test with Image Data
-
 # In[ ]:
 
-
-image_index = random.randint(0, len(test))
-print("Original Output:", test['label'][image_index])
-pred = model.predict(training_set[image_index].reshape(1, 48, 48, 1))
-prediction_label = le.inverse_transform([pred.argmax()])[0]
-print("Predicted Output:", prediction_label)
-plt.imshow(training_set[image_index].reshape(48, 48), cmap='gray');
-
+model.save('model_2.h5')
 
 # In[ ]:
-
-
-image_index = random.randint(0, len(test))
-print("Original Output:", test['label'][image_index])
-pred = model.predict(training_set[image_index].reshape(1, 48, 48, 1))
-prediction_label = le.inverse_transform([pred.argmax()])[0]
-print("Predicted Output:", prediction_label)
-plt.imshow(training_set[image_index].reshape(48, 48), cmap='gray');
-
-
-# In[ ]:
-
-
-image_index = random.randint(0, len(test))
-print("Original Output:", test['label'][image_index])
-pred = model.predict(training_set[image_index].reshape(1, 48, 48, 1))
-prediction_label = le.inverse_transform([pred.argmax()])[0]
-print("Predicted Output:", prediction_label)
-plt.imshow(training_set[image_index].reshape(48, 48), cmap='gray');
-
-
-# In[]:
-
-train_loss, train_acc = model.evaluate(training_set)
-testn_loss, test_acc = model.evaluate(test_set)
-print("final train accuracy = {:.2f}, validation accuracy = {:.2f}".format(train_acc*100, test_acc*100))
-
+train_loss, train_acc = model.evaluate(train_generator)
+test_loss, test_acc   = model.evaluate(validation_generator)
+print("final train accuracy = {:.2f} , validation accuracy = {:.2f}".format(train_acc*100, test_acc*100))
 
 # %%

@@ -215,7 +215,6 @@ history = model.fit(x=x_train, y=y_train, batch_size=128, epochs=2, validation_d
 
 # In[ ]:
 
-
 acc = history.history['accuracy']
 val_acc = history.history['val_accuracy']
 epochs = range(len(acc))
