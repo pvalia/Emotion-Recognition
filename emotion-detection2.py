@@ -5,65 +5,179 @@
 
 # In[ ]:
 
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import pandas as pd
+import numpy as np
 import os
-#for dirname, _, filenames in os.walk('/kaggle/input'):
-    #for filename in filenames:
-        #print(os.path.join(dirname, filename))
 import matplotlib.pyplot as plt
 import seaborn as sns
+import warnings
+import random
+from tqdm.notebook import tqdm
+warnings.filterwarnings('ignore')
+
 import tensorflow as tf
-import keras
-from keras.preprocessing import image
+from tensorflow.keras.utils import to_categorical
+from keras.preprocessing.image import load_img
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPool2D, Flatten,Dense,Dropout,BatchNormalization
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import cv2
-from tensorflow.keras.applications import VGG16, InceptionResNetV2
+from tensorflow.keras.optimizers import Adam
+
+
+# ## Load the Dataset
+
+# In[ ]:
+
+
+TRAIN_DIR = './archive/train/train/'
+TEST_DIR = './archive/test/test/'
+
+
+# In[ ]:
+
+
+def load_dataset(directory):
+    image_paths = []
+    labels = []
+    
+    for label in os.listdir(directory):
+        for filename in os.listdir(directory+label):
+            image_path = os.path.join(directory, label, filename)
+            image_paths.append(image_path)
+            labels.append(label)
+            
+        print(label, "Completed")
+        
+    return image_paths, labels
+
+
+# In[ ]:
+
+
+## convert into dataframe
+train = pd.DataFrame()
+train['image'], train['label'] = load_dataset(TRAIN_DIR)
+# shuffle the dataset
+train = train.sample(frac=1).reset_index(drop=True)
+train.head()
+
+
+# In[ ]:
+
+
+test = pd.DataFrame()
+test['image'], test['label'] = load_dataset(TEST_DIR)
+test.head()
+
+
+# ## Exploratory Data Analysis
+
+# In[ ]:
+
+
+sns.countplot(train['label'])
+
+
+# In[ ]:
+
+
+from PIL import Image
+img = Image.open(train['image'][0])
+plt.imshow(img, cmap='gray');
+
+
+# In[ ]:
+
+
+# to display grid of images
+plt.figure(figsize=(20,20))
+files = train.iloc[0:25]
+
+for index, file, label in files.itertuples():
+    plt.subplot(5, 5, index+1)
+    img = load_img(file)
+    img = np.array(img)
+    plt.imshow(img)
+    plt.title(label)
+    plt.axis('off')
+
+
+# ## Feature Extraction
+
+# In[ ]:
+
+
+def extract_features(images):
+    features = []
+    for image in tqdm(images):
+        img = load_img(image, grayscale=True)
+        img = np.array(img)
+        features.append(img)
+    features = np.array(features)
+    features = features.reshape(len(features), 48, 48, 1)
+    return features
+
+
+# In[ ]:
+
+
+train_features = extract_features(train['image'])
+
+
+# In[ ]:
+
+
+test_features = extract_features(test['image'])
+
+
+# In[ ]:
+
+
+## normalize the image
+x_train = train_features/255.0
+x_test = test_features/255.0
+
+
+# In[ ]:
+
+
+## convert label to integer
+from sklearn.preprocessing import LabelEncoder
+le = LabelEncoder()
+le.fit(train['label'])
+y_train = le.transform(train['label'])
+y_test = le.transform(test['label'])
+
+
+# In[ ]:
+
+
+y_train = to_categorical(y_train, num_classes=7)
+y_test = to_categorical(y_test, num_classes=7)
+
+
+# In[ ]:
+
+
+y_train[0]
+
+
+# In[ ]:
+
+
+# config
+input_shape = (48, 48, 1)
+output_class = 7
+
+
+# ## Model Creation
+
+# In[ ]:
+
 from keras import regularizers
-from tensorflow.keras.optimizers import Adam,RMSprop,SGD,Adamax
 
-
-# In[ ]:
-
-train_dir = './archive/train/train/'
-test_dir = './archive/test/test/'
-img_size = 48
-
-
-# In[ ]:
-
-train_datagen = ImageDataGenerator(#rotation_range = 180,
-                                         width_shift_range = 0.1,
-                                         height_shift_range = 0.1,
-                                         horizontal_flip = True,
-                                         rescale = 1./255,
-                                         #zoom_range = 0.2,
-                                         validation_split = 0.2
-                                        )
-validation_datagen = ImageDataGenerator(rescale = 1./255,
-                                         validation_split = 0.2)
-
-# In[ ]:
-
-train_generator = train_datagen.flow_from_directory(directory = train_dir,
-                                                    target_size = (img_size,img_size),
-                                                    batch_size = 64,
-                                                    color_mode = "grayscale",
-                                                    class_mode = "categorical",
-                                                    subset = "training"
-                                                   )
-validation_generator = validation_datagen.flow_from_directory( directory = test_dir,
-                                                              target_size = (img_size,img_size),
-                                                              batch_size = 64,
-                                                              color_mode = "grayscale",
-                                                              class_mode = "categorical",
-                                                              subset = "validation"
-                                                             )
-
-# In[ ]:
-model= tf.keras.models.Sequential()
+model = Sequential()
+# convolutional layers
 model.add(Conv2D(32, kernel_size=(3, 3), padding='same', activation='relu', input_shape=(48, 48,1)))
 model.add(Conv2D(64,(3,3), padding='same', activation='relu' ))
 model.add(BatchNormalization())
@@ -101,46 +215,117 @@ model.compile(
     loss='categorical_crossentropy', 
     metrics=['accuracy']
   )
-
-# In[ ]:
-
-epochs = 2
-batch_size = 64
 model.summary()
 
 # In[ ]:
 
-history = model.fit(x = train_generator,epochs = epochs,validation_data = validation_generator)
+# train the model
+history = model.fit(x=x_train, y=y_train, batch_size=128, epochs=20, validation_data=(x_test, y_test))
+
+
+# ## Plot the Results
 
 # In[ ]:
-fig , ax = plt.subplots(1,2)
-train_acc = history.history['accuracy']
-train_loss = history.history['loss']
-fig.set_size_inches(12,4)
 
-ax[0].plot(history.history['accuracy'])
-ax[0].plot(history.history['val_accuracy'])
-ax[0].set_title('Training Accuracy vs Validation Accuracy')
-ax[0].set_ylabel('Accuracy')
-ax[0].set_xlabel('Epoch')
-ax[0].legend(['Train', 'Validation'], loc='upper left')
 
-ax[1].plot(history.history['loss'])
-ax[1].plot(history.history['val_loss'])
-ax[1].set_title('Training Loss vs Validation Loss')
-ax[1].set_ylabel('Loss')
-ax[1].set_xlabel('Epoch')
-ax[1].legend(['Train', 'Validation'], loc='upper left')
+acc = history.history['accuracy']
+val_acc = history.history['val_accuracy']
+epochs = range(len(acc))
+
+plt.plot(epochs, acc, 'b', label='Training Accuracy')
+plt.plot(epochs, val_acc, 'r', label='Validation Accuracy')
+plt.title('Accuracy Graph')
+plt.legend()
+plt.figure()
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+print(val_loss)
+epochs = range(len(acc))
+
+plt.plot(epochs, loss, 'b', label='Training Loss')
+plt.plot(epochs, val_loss, 'r', label='Validation Loss')
+plt.title('Loss Graph')
+plt.legend()
 
 plt.show()
 
+
+# ## Test with Image Data
+
 # In[ ]:
 
-model.save('model_2.h5')
+
+image_index = random.randint(0, len(test))
+print("Original Output:", test['label'][image_index])
+pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+prediction_label = le.inverse_transform([pred.argmax()])[0]
+print("Predicted Output:", prediction_label)
+plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+
 
 # In[ ]:
-train_loss, train_acc = model.evaluate(train_generator)
-test_loss, test_acc   = model.evaluate(validation_generator)
-print("final train accuracy = {:.2f} , validation accuracy = {:.2f}".format(train_acc*100, test_acc*100))
+
+model.save('model3.h5')
+#image_index = random.randint(0, len(test))
+#print("Original Output:", test['label'][image_index])
+#pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+#prediction_label = le.inverse_transform([pred.argmax()])[0]
+#print("Predicted Output:", prediction_label)
+#plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+
+
+# In[ ]:
+
+
+image_index = random.randint(0, len(test))
+print("Original Output:", test['label'][image_index])
+pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+prediction_label = le.inverse_transform([pred.argmax()])[0]
+print("Predicted Output:", prediction_label)
+plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+
+
+# In[ ]:
+
+image_index = random.randint(0, len(test))
+print("Original Output:", test['label'][image_index])
+pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+prediction_label = le.inverse_transform([pred.argmax()])[0]
+print("Predicted Output:", prediction_label)
+plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+
+# In[]:
+
+train_loss, train_acc = model.evaluate(x_train, y_train)
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print("Final Train Accuracy = {:.2f}%, Validation Accuracy = {:.2f}%".format(train_acc * 100, test_acc * 100))
+
+
+
+# %%
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+## Make predictions on the test set
+y_pred_prob = model.predict(x_test)
+y_pred = np.argmax(y_pred_prob, axis=1)
+
+# Convert one-hot encoded labels back to original labels
+y_true = np.argmax(y_test, axis=1)
+
+# Generate confusion matrix
+conf_matrix = confusion_matrix(y_true, y_pred)
+
+# Display the confusion matrix using a heatmap
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
+plt.xlabel('Predicted Labels')
+plt.ylabel('True Labels')
+plt.title('Confusion Matrix')
+plt.show()
 
 # %%

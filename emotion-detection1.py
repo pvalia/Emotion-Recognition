@@ -208,7 +208,7 @@ model.summary()
 # In[ ]:
 
 # train the model
-history = model.fit(x=x_train, y=y_train, batch_size=128, epochs=2, validation_data=(x_test, y_test))
+history = model.fit(x=x_train, y=y_train, batch_size=128, epochs=20, validation_data=(x_test, y_test))
 
 
 # ## Plot the Results
@@ -253,13 +253,13 @@ plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
 
 # In[ ]:
 
-
-image_index = random.randint(0, len(test))
-print("Original Output:", test['label'][image_index])
-pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
-prediction_label = le.inverse_transform([pred.argmax()])[0]
-print("Predicted Output:", prediction_label)
-plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+model.save('model1.h5')
+#image_index = random.randint(0, len(test))
+#print("Original Output:", test['label'][image_index])
+#pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+#prediction_label = le.inverse_transform([pred.argmax()])[0]
+#print("Predicted Output:", prediction_label)
+#plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
 
 
 # In[ ]:
@@ -273,6 +273,15 @@ print("Predicted Output:", prediction_label)
 plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
 
 
+# In[ ]:
+
+image_index = random.randint(0, len(test))
+print("Original Output:", test['label'][image_index])
+pred = model.predict(x_test[image_index].reshape(1, 48, 48, 1))
+prediction_label = le.inverse_transform([pred.argmax()])[0]
+print("Predicted Output:", prediction_label)
+plt.imshow(x_test[image_index].reshape(48, 48), cmap='gray');
+
 # In[]:
 
 train_loss, train_acc = model.evaluate(x_train, y_train)
@@ -280,5 +289,30 @@ test_loss, test_acc = model.evaluate(x_test, y_test)
 print("Final Train Accuracy = {:.2f}%, Validation Accuracy = {:.2f}%".format(train_acc * 100, test_acc * 100))
 
 
+
+# %%
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+## Make predictions on the test set
+y_pred_prob = model.predict(x_test)
+y_pred = np.argmax(y_pred_prob, axis=1)
+
+# Convert one-hot encoded labels back to original labels
+y_true = np.argmax(y_test, axis=1)
+
+# Generate confusion matrix
+conf_matrix = confusion_matrix(y_true, y_pred)
+
+# Display the confusion matrix using a heatmap
+plt.figure(figsize=(8, 6))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
+plt.xlabel('Predicted Labels')
+plt.ylabel('True Labels')
+plt.title('Confusion Matrix')
+plt.show()
 
 # %%
