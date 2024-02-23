@@ -11,14 +11,24 @@ The core of this project lies in its use of two CNN architectures for emotion cl
 The objective is to compare these models in terms of accuracy, efficiency, and performance on a standardized emotion dataset, providing insights into the applicability of each model for real-world applications.
 
 # Demo
+Below are the accuracy and loss graphs for the 2 models that were trained:
+
+## Model 1
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/631abcb1-7894-410b-8b4d-84e48121e18d)
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/6b7bfb88-c602-44be-9d29-f5383ebae230)
+
+## Model 2
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/1eb342c7-3290-4bf1-b15b-ff33fe83d51e)
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/b7f79a92-0973-477a-b0b3-9c98fae129fd)
 
 To run the code you can either run each cell separately or the whole script. A sample output of the trained data:
 
 ![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/0a6d1389-6dce-447e-9e50-def16d4d6491)
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/2d549f07-c216-4170-9f6e-ff8249568527)
 
 ## Getting Started
 
-hese instructions will guide you through the setup process to run the emotion recognition models on your local machine for development and testing purposes.
+These instructions will guide you through the setup process to run the emotion recognition models on your local machine for development and testing purposes.
 
 ### Requirements
 The dataset that the models were trained on can be downloaded from: https://www.kaggle.com/datasets/msambare/fer2013
