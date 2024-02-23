@@ -14,18 +14,22 @@ The objective is to compare these models in terms of accuracy, efficiency, and p
 Below are the accuracy and loss graphs for the 2 models that were trained:
 
 ## Model 1
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/631abcb1-7894-410b-8b4d-84e48121e18d)
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/6b7bfb88-c602-44be-9d29-f5383ebae230)
-
+<p align="center">
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/631abcb1-7894-410b-8b4d-84e48121e18d" alt="Image 1" width="45%" />
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/6b7bfb88-c602-44be-9d29-f5383ebae230" alt="Image 2" width="45%" /> 
+</p>
 ## Model 2
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/1eb342c7-3290-4bf1-b15b-ff33fe83d51e)
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/b7f79a92-0973-477a-b0b3-9c98fae129fd)
+<p align="center">
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/1eb342c7-3290-4bf1-b15b-ff33fe83d51e" alt="Image 1" width="45%" />
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/b7f79a92-0973-477a-b0b3-9c98fae129fd" alt="Image 2" width="45%" /> 
+</p>
 
 To run the code you can either run each cell separately or the whole script. A sample output of the trained data:
-
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/706db422-863c-4983-aa1b-824cbe74a31c)
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/6aea1944-397a-4ff7-8ac9-f578a4f85f42)
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/2d549f07-c216-4170-9f6e-ff8249568527)
+<p align="center">
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/706db422-863c-4983-aa1b-824cbe74a31c" alt="Image 1" width="33%" />
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/6aea1944-397a-4ff7-8ac9-f578a4f85f42" alt="Image 2" width="33%" /> 
+  <img src="https://github.com/pvalia/Emotion-Recognition/assets/77172929/2d549f07-c216-4170-9f6e-ff8249568527" alt="Image 3" width="33%" /> 
+</p>
 
 ## Getting Started
 
