@@ -23,7 +23,8 @@ Below are the accuracy and loss graphs for the 2 models that were trained:
 
 To run the code you can either run each cell separately or the whole script. A sample output of the trained data:
 
-![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/0a6d1389-6dce-447e-9e50-def16d4d6491)
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/706db422-863c-4983-aa1b-824cbe74a31c)
+![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/6aea1944-397a-4ff7-8ac9-f578a4f85f42)
 ![image](https://github.com/pvalia/Emotion-Recognition/assets/77172929/2d549f07-c216-4170-9f6e-ff8249568527)
 
 ## Getting Started
